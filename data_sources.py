@@ -10,10 +10,6 @@ import yfinance as yf
 from bs4 import BeautifulSoup
 from feedparser import parse as parse_feed
 
-# -------------------------
-# NEWS SOURCES
-# -------------------------
-
 NEWS_TOPICS = {
     "World / War": [
         "https://news.google.com/rss/search?q=site:reuters.com%20(world%20OR%20war%20OR%20geopolitics)&hl=en-US&gl=US&ceid=US:en",
@@ -37,18 +33,10 @@ NEWS_TOPICS = {
     ],
 }
 
-# -------------------------
-# ECONOMIC DATA
-# -------------------------
-
 BLS_SERIES = {
     "US CPI All Items": "CUUR0000SA0",
     "San Diego CPI All Items": "CUURS49BSA0",
 }
-
-# -------------------------
-# MARKET WATCHLIST
-# -------------------------
 
 TRACKED_TICKERS = [
     "SPY",
@@ -80,10 +68,6 @@ TICKER_LABELS = {
     "AMZN": "Amazon",
 }
 
-
-# -------------------------
-# HELPERS
-# -------------------------
 
 def load_feed(url: str) -> List[Dict[str, Any]]:
     parsed = parse_feed(url)
@@ -203,10 +187,6 @@ def pct_change(current_value: float, previous_value: float) -> float:
         return math.nan
 
 
-# -------------------------
-# MARKET DATA BUILD
-# -------------------------
-
 def build_trade_ideas() -> pd.DataFrame:
     rows = []
 
@@ -254,8 +234,7 @@ def build_trade_ideas() -> pd.DataFrame:
             }
         )
 
-    df = pd.DataFrame(rows)
-    if df.empty:
+    if not rows:
         return pd.DataFrame(
             columns=[
                 "Ticker",
@@ -270,7 +249,7 @@ def build_trade_ideas() -> pd.DataFrame:
             ]
         )
 
-    return df.sort_values(["Score", "1M %"], ascending=False).reset_index(drop=True)
+    return pd.DataFrame(rows).sort_values(["Score", "1M %"], ascending=False).reset_index(drop=True)
 
 
 def market_snapshot() -> pd.DataFrame:
@@ -296,12 +275,11 @@ def market_snapshot() -> pd.DataFrame:
             }
         )
 
+    if not rows:
+        return pd.DataFrame(columns=["Ticker", "Name", "Price", "1D %", "1M %"])
+
     return pd.DataFrame(rows)
 
-
-# -------------------------
-# COLLECT ALL
-# -------------------------
 
 def collect_all() -> Dict[str, Any]:
     world_df = get_topic_news("World / War")
@@ -328,10 +306,6 @@ def collect_all() -> Dict[str, Any]:
         "sd_cpi": sd_cpi,
     }
 
-
-# -------------------------
-# EXECUTIVE BRIEF LOGIC
-# -------------------------
 
 def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     hist = data["hist"]
@@ -526,6 +500,39 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         pass
 
+    priority_actions = []
+
+    if market_tone == "risk-off":
+        priority_actions.append(
+            "Call late-stage deals that lack clear ROI. They are the most likely to slip."
+        )
+        priority_actions.append(
+            "Reposition active enterprise deals around cost savings, consolidation, and measurable payback."
+        )
+    elif market_tone == "risk-on":
+        priority_actions.append(
+            "Push forward well-positioned growth deals while approval windows are more supportive."
+        )
+    else:
+        priority_actions.append(
+            "Focus on qualifying deal quality and strengthening business cases before pushing hard."
+        )
+
+    priority_actions.append(
+        "In competitive deals, sharpen differentiation against alternatives and the status quo. Do not rely on product strength alone."
+    )
+    priority_actions.append(
+        "Bring executive and financial stakeholders into large deals earlier to reduce late-cycle drag."
+    )
+
+    try:
+        if float(data["us_cpi"].get("value", 0)) > 3:
+            priority_actions.append(
+                "Anchor conversations in near-term business value because cost pressure is still shaping buying behavior."
+            )
+    except Exception:
+        pass
+
     return {
         "opening": "Plain-English morning brief: what matters today, why it matters, and where to pay attention.",
         "topline": [
@@ -539,4 +546,5 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
         "game_plan": game_plan,
         "sales_exec_implications": sales_exec_implications,
         "deals_at_risk": deals_at_risk,
+        "priority_actions": priority_actions,
     }
