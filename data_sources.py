@@ -10,6 +10,10 @@ import yfinance as yf
 from bs4 import BeautifulSoup
 from feedparser import parse as parse_feed
 
+# -------------------------
+# NEWS SOURCES
+# -------------------------
+
 NEWS_TOPICS = {
     "World / War": [
         "https://news.google.com/rss/search?q=site:reuters.com%20(world%20OR%20war%20OR%20geopolitics)&hl=en-US&gl=US&ceid=US:en",
@@ -33,10 +37,18 @@ NEWS_TOPICS = {
     ],
 }
 
+# -------------------------
+# ECONOMIC DATA
+# -------------------------
+
 BLS_SERIES = {
     "US CPI All Items": "CUUR0000SA0",
     "San Diego CPI All Items": "CUURS49BSA0",
 }
+
+# -------------------------
+# MARKET WATCHLIST
+# -------------------------
 
 TRACKED_TICKERS = [
     "SPY",
@@ -69,6 +81,10 @@ TICKER_LABELS = {
 }
 
 
+# -------------------------
+# HELPERS
+# -------------------------
+
 def load_feed(url: str) -> List[Dict[str, Any]]:
     parsed = parse_feed(url)
     items: List[Dict[str, Any]] = []
@@ -96,7 +112,7 @@ def get_topic_news(topic: str) -> pd.DataFrame:
 
     df = pd.DataFrame(rows)
     if df.empty:
-        return df
+        return pd.DataFrame(columns=["title", "link", "published", "summary", "source"])
 
     return df.drop_duplicates(subset=["title"]).reset_index(drop=True).head(10)
 
@@ -187,6 +203,10 @@ def pct_change(current_value: float, previous_value: float) -> float:
         return math.nan
 
 
+# -------------------------
+# MARKET DATA BUILD
+# -------------------------
+
 def build_trade_ideas() -> pd.DataFrame:
     rows = []
 
@@ -236,7 +256,19 @@ def build_trade_ideas() -> pd.DataFrame:
 
     df = pd.DataFrame(rows)
     if df.empty:
-        return df
+        return pd.DataFrame(
+            columns=[
+                "Ticker",
+                "Name",
+                "Price",
+                "1M %",
+                "3M %",
+                "Signal",
+                "Action",
+                "Conviction",
+                "Score",
+            ]
+        )
 
     return df.sort_values(["Score", "1M %"], ascending=False).reset_index(drop=True)
 
@@ -267,6 +299,10 @@ def market_snapshot() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# -------------------------
+# COLLECT ALL
+# -------------------------
+
 def collect_all() -> Dict[str, Any]:
     world_df = get_topic_news("World / War")
     market_df = get_topic_news("Markets")
@@ -292,6 +328,10 @@ def collect_all() -> Dict[str, Any]:
         "sd_cpi": sd_cpi,
     }
 
+
+# -------------------------
+# EXECUTIVE BRIEF LOGIC
+# -------------------------
 
 def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     hist = data["hist"]
@@ -324,7 +364,7 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     if not data["sd_df"].empty:
         watchouts.append(data["sd_df"].iloc[0]["title"])
 
-    if not snapshot_df.empty:
+    if not snapshot_df.empty and "1M %" in snapshot_df.columns:
         avg_move = snapshot_df["1M %"].mean()
         if avg_move > 3:
             market_tone = "risk-on"
@@ -352,7 +392,7 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
 
     if not ideas_df.empty:
         top = ideas_df.iloc[0]
-        if top["1M %"] > 5:
+        if pd.notna(top["1M %"]) and top["1M %"] > 5:
             what_this_means.append(
                 f"Investing: strong momentum is showing up in {top['Ticker']}, so it is worth tracking closely, but do not chase extended moves."
             )
@@ -370,11 +410,11 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
         month = float(hist["Close"].iloc[-22]) if len(hist) > 22 else float(hist["Close"].iloc[0])
         estc_change = pct_change(last, month)
 
-        if estc_change < -5:
+        if pd.notna(estc_change) and estc_change < -5:
             what_this_means.append(
                 "Elastic: continued weakness suggests the market is still questioning growth or positioning."
             )
-        elif estc_change > 5:
+        elif pd.notna(estc_change) and estc_change > 5:
             what_this_means.append(
                 "Elastic: recent strength suggests sentiment is improving or momentum is building."
             )
@@ -395,9 +435,7 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
                 "Macro: inflation looks more contained, which reduces some pressure on rates and spending."
             )
     except Exception:
-        what_this_means.append(
-            "Macro: CPI data is unavailable today."
-        )
+        what_this_means.append("Macro: CPI data is unavailable today.")
 
     game_plan = []
 
@@ -412,7 +450,7 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
 
     if not ideas_df.empty:
         top = ideas_df.iloc[0]
-        if top["1M %"] > 5:
+        if pd.notna(top["1M %"]) and top["1M %"] > 5:
             game_plan.append(
                 f"Track {top['Ticker']} closely, but avoid chasing after a sharp move."
             )
@@ -457,7 +495,7 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
         )
 
     sales_exec_implications.append(
-        "Because competition is a live issue, tighten the positioning around why your platform is the safer, simpler, and more durable choice versus point solutions or status quo."
+        "Because competition is live, tighten the positioning around why your platform is the safer, simpler, and more durable choice versus alternatives or the status quo."
     )
     sales_exec_implications.append(
         "For large enterprise deals, anchor on consolidation, reduced complexity, and faster time to operational impact."
@@ -465,6 +503,28 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     sales_exec_implications.append(
         "If momentum stalls, reposition around executive priorities: lower risk, fewer tools, clearer accountability, and measurable outcomes."
     )
+
+    deals_at_risk = []
+
+    if market_tone == "risk-off":
+        deals_at_risk.append(
+            "Deals without clear ROI or payback justification are at higher risk of delay or pushout."
+        )
+
+    deals_at_risk.append(
+        "Competitive pressure is highest where differentiation is unclear, so tighten positioning against alternatives and the status quo."
+    )
+    deals_at_risk.append(
+        "Large enterprise deals may slow in procurement or finance, so make sure executive alignment happens early."
+    )
+
+    try:
+        if float(data["us_cpi"].get("value", 0)) > 3:
+            deals_at_risk.append(
+                "Persistent cost pressure may cause stakeholders to re-evaluate, delay, or down-scope deals."
+            )
+    except Exception:
+        pass
 
     return {
         "opening": "Plain-English morning brief: what matters today, why it matters, and where to pay attention.",
@@ -478,4 +538,5 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
         "what_this_means": what_this_means,
         "game_plan": game_plan,
         "sales_exec_implications": sales_exec_implications,
+        "deals_at_risk": deals_at_risk,
     }
