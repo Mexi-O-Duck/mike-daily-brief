@@ -103,9 +103,8 @@ def get_topic_news(topic: str) -> pd.DataFrame:
 
 def bls_latest(series_id: str) -> Dict[str, Any]:
     try:
-        url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
         response = requests.post(
-            url,
+            "https://api.bls.gov/publicAPI/v2/timeseries/data/",
             json={"seriesid": [series_id], "latest": True},
             timeout=20,
         )
@@ -129,9 +128,9 @@ def bls_last_12(series_id: str) -> pd.DataFrame:
     try:
         end_year = datetime.now().year
         start_year = end_year - 2
-        url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+
         response = requests.post(
-            url,
+            "https://api.bls.gov/publicAPI/v2/timeseries/data/",
             json={
                 "seriesid": [series_id],
                 "startyear": str(start_year),
@@ -325,8 +324,6 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     if not data["sd_df"].empty:
         watchouts.append(data["sd_df"].iloc[0]["title"])
 
-    what_this_means = []
-
     if not snapshot_df.empty:
         avg_move = snapshot_df["1M %"].mean()
         if avg_move > 3:
@@ -337,6 +334,8 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
             market_tone = "mixed"
     else:
         market_tone = "unknown"
+
+    what_this_means = []
 
     if market_tone == "risk-off":
         what_this_means.append(
@@ -439,6 +438,34 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         pass
 
+    sales_exec_implications = []
+
+    if market_tone == "risk-off":
+        sales_exec_implications.append(
+            "Large enterprise buyers are more likely to demand tighter business justification, so lead with hard ROI, payback period, and operational efficiency."
+        )
+        sales_exec_implications.append(
+            "Budget pressure means finance and procurement will likely matter more late in the cycle, so build those stakeholders in earlier."
+        )
+    elif market_tone == "risk-on":
+        sales_exec_implications.append(
+            "You have more room to position around transformation, competitive advantage, and innovation, not just savings."
+        )
+    else:
+        sales_exec_implications.append(
+            "In a mixed environment, lead with outcomes that are strategic but still measurable in the current budget cycle."
+        )
+
+    sales_exec_implications.append(
+        "Because competition is a live issue, tighten the positioning around why your platform is the safer, simpler, and more durable choice versus point solutions or status quo."
+    )
+    sales_exec_implications.append(
+        "For large enterprise deals, anchor on consolidation, reduced complexity, and faster time to operational impact."
+    )
+    sales_exec_implications.append(
+        "If momentum stalls, reposition around executive priorities: lower risk, fewer tools, clearer accountability, and measurable outcomes."
+    )
+
     return {
         "opening": "Plain-English morning brief: what matters today, why it matters, and where to pay attention.",
         "topline": [
@@ -450,4 +477,5 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
         "market_snapshot": snapshot_lines,
         "what_this_means": what_this_means,
         "game_plan": game_plan,
+        "sales_exec_implications": sales_exec_implications,
     }
