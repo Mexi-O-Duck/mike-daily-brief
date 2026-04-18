@@ -315,36 +315,89 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     if not data["sd_df"].empty:
         watchouts.append(data["sd_df"].iloc[0]["title"])
 
-    what_this_means = []
+   what_this_means = []
 
-    if not data["market_df"].empty:
+# --- MARKET DIRECTION ---
+if not snapshot_df.empty:
+    avg_move = snapshot_df["1M %"].mean()
+
+    if avg_move > 3:
+        market_tone = "risk-on"
+    elif avg_move < -3:
+        market_tone = "risk-off"
+    else:
+        market_tone = "mixed"
+else:
+    market_tone = "unknown"
+
+# --- SALES / EXECUTIVE ---
+if market_tone == "risk-off":
+    what_this_means.append(
+        "Executive / sales: markets are leaning risk-off → expect tighter budgets, slower approvals, and more ROI scrutiny."
+    )
+elif market_tone == "risk-on":
+    what_this_means.append(
+        "Executive / sales: markets are supportive → easier conversations around growth, innovation, and new spend."
+    )
+else:
+    what_this_means.append(
+        "Executive / sales: mixed environment → focus on deal quality, urgency, and clear business impact."
+    )
+
+# --- INVESTING ---
+if not ideas_df.empty:
+    top = ideas_df.iloc[0]
+
+    if top["1M %"] > 5:
         what_this_means.append(
-            "Executive / sales: if macro and market headlines stay cautious, expect longer approvals, more budget scrutiny, and heavier ROI pressure in enterprise conversations."
+            f"Investing: strong momentum showing up in {top['Ticker']} → worth tracking closely, but avoid chasing extended moves."
         )
     else:
         what_this_means.append(
-            "Executive / sales: no major shift in the macro backdrop today, so stay focused on deal quality, urgency, and clear business value."
+            f"Investing: no dominant trend → prioritize patience over forcing trades."
         )
+else:
+    what_this_means.append(
+        "Investing: no clear setups → sit tight and wait for stronger signals."
+    )
 
-    if not ideas_df.empty:
-        top = ideas_df.iloc[0]
+# --- ELASTIC SIGNAL ---
+if not hist.empty:
+    last = hist["Close"].iloc[-1]
+    month = hist["Close"].iloc[-22]
+
+    estc_change = pct_change(last, month)
+
+    if estc_change < -5:
         what_this_means.append(
-            f"Investing: the strongest rules-based setup right now is {top['Ticker']}, which is showing {top['Signal'].lower()} behavior with {top['Conviction'].lower()} conviction. Treat it as a watchlist priority, not autopilot."
+            "Elastic: continued weakness → market likely questioning growth or positioning."
+        )
+    elif estc_change > 5:
+        what_this_means.append(
+            "Elastic: showing strength → sentiment improving or momentum building."
         )
     else:
         what_this_means.append(
-            "Investing: there are no standout rules-based setups right now, which usually argues for patience over forcing trades."
+            "Elastic: relatively stable → no strong directional signal right now."
         )
 
-    if not data["world_df"].empty or not data["sd_df"].empty:
+# --- MACRO / COST PRESSURE ---
+cpi_val = data["us_cpi"].get("value", "N/A")
+
+try:
+    cpi_val = float(cpi_val)
+    if cpi_val > 3:
         what_this_means.append(
-            "Macro / personal: keep an eye on geopolitical headlines and California cost pressure together, because they can hit sentiment, spending behavior, and market risk appetite at the same time."
+            "Macro: inflation still elevated → ongoing pressure on costs, spending behavior, and rate expectations."
         )
     else:
         what_this_means.append(
-            "Macro / personal: no major pressure signal is standing out right now, so the environment looks relatively stable on the surface."
+            "Macro: inflation looks contained → less pressure on rates and spending."
         )
-
+except:
+    what_this_means.append(
+        "Macro: CPI data unavailable today."
+    )
     return {
         "opening": "Plain-English morning brief: what matters today, why it matters, and where to pay attention.",
         "topline": [
