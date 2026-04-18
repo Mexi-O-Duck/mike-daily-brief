@@ -254,6 +254,47 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     if not data["sd_df"].empty:
         watchouts.append(data["sd_df"].iloc[0]["title"])
 
+    what_this_means = []
+
+    if not data["market_df"].empty:
+        what_this_means.append(
+            "Executive / sales: if macro and market headlines stay cautious, expect longer approvals, more budget scrutiny, and heavier ROI pressure in enterprise conversations."
+        )
+    else:
+        what_this_means.append(
+            "Executive / sales: no major shift in the macro backdrop today, so stay focused on deal quality, urgency, and clear business value."
+        )
+
+    if not ideas_df.empty:
+        top = ideas_df.iloc[0]
+        what_this_means.append(
+            f"Investing: the strongest rules-based setup right now is {top['Ticker']}, which is showing {top['Signal'].lower()} behavior with {top['Conviction'].lower()} conviction. Treat it as a watchlist priority, not autopilot."
+        )
+    else:
+        what_this_means.append(
+            "Investing: there are no standout rules-based setups right now, which usually argues for patience over forcing trades."
+        )
+
+    if not data["world_df"].empty or not data["sd_df"].empty:
+        what_this_means.append(
+            "Macro / personal: keep an eye on geopolitical headlines and California cost pressure together, because they can hit sentiment, spending behavior, and market risk appetite at the same time."
+        )
+    else:
+        what_this_means.append(
+            "Macro / personal: no major pressure signal is standing out right now, so the environment looks relatively stable on the surface."
+        )
+
+    return {
+        "opening": "Plain-English morning brief: what matters today, why it matters, and where to pay attention.",
+        "topline": [
+            f"US CPI: {data['us_cpi']['value']} | San Diego CPI: {data['sd_cpi']['value']}",
+            estc_line,
+        ],
+        "watchouts": watchouts[:3],
+        "top_ideas": top_ideas,
+        "market_snapshot": snapshot_lines,
+        "what_this_means": what_this_means,
+    }
     return {
         "opening": "Executive morning brief: macro, markets, San Diego pressure points, Elastic, Congress trade watch, and high-priority market setups.",
         "topline": [
