@@ -6,78 +6,97 @@ from email.message import EmailMessage
 
 from data_sources import collect_all, executive_brief
 
+
 def bullets(df, n=3):
     if df.empty:
         return "<li>No fresh items</li>"
-    return "".join([f"<li><a href='{r['link']}'>{r['title']}</a></li>" for _, r in df.head(n).iterrows()])
+
+    rows = []
+    for _, row in df.head(n).iterrows():
+        title = row.get("title", "Untitled")
+        link = row.get("link", "")
+        rows.append(f"<li><a href='{link}'>{title}</a></li>")
+    return "".join(rows)
+
+
+def html_list(items):
+    if not items:
+        return "<li>No major updates</li>"
+    return "".join([f"<li>{item}</li>" for item in items])
+
 
 def format_html():
     data = collect_all()
     brief = executive_brief(data)
 
-    subject = "Mike's Daily Executive Brief"
+    subject = "Mike's Executive Daily Brief"
 
-    def bullets(df, n=3):
-        if df.empty:
-            return "<li>No major updates</li>"
-        return "".join([
-            f"<li><a href='{r['link']}'>{r['title']}</a></li>"
-            for _, r in df.head(n).iterrows()
-        ])
-
-    # Build sections
-    topline = "".join([f"<li>{line}</li>" for line in brief["topline"]])
-    watchouts = "".join([f"<li>{w}</li>" for w in brief["watchouts"]]) or "<li>No major risks</li>"
-    ideas = "".join([f"<li>{i}</li>" for i in brief["top_ideas"]]) or "<li>No strong setups</li>"
-    snapshot = "".join([f"<li>{m}</li>" for m in brief["market_snapshot"]]) or "<li>No data</li>"
+    topline_html = html_list(brief.get("topline", []))
+    watchouts_html = html_list(brief.get("watchouts", []))
+    meaning_html = html_list(brief.get("what_this_means", []))
+    gameplan_html = html_list(brief.get("game_plan", []))
+    ideas_html = html_list(brief.get("top_ideas", []))
+    snapshot_html = html_list(brief.get("market_snapshot", []))
+    sales_html = html_list(brief.get("sales_exec_implications", []))
+    risk_html = html_list(brief.get("deals_at_risk", []))
 
     html = f"""
     <html>
-    <body style="font-family: Arial; line-height: 1.5; color: #111;">
+      <body style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
+        <h2>Mike's Executive Daily Brief</h2>
 
-    <h2>Mike’s Daily Brief</h2>
+        <p>{brief.get("opening", "")}</p>
 
-    <p><b>What matters today:</b></p>
-    <ul>{topline}</ul>
+        <h3>What matters today</h3>
+        <ul>{topline_html}</ul>
 
-    <p><b>What to watch:</b></p>
-    <ul>{watchouts}</ul>
+        <h3>What to watch</h3>
+        <ul>{watchouts_html}</ul>
 
-    <p><b>Market snapshot:</b></p>
-    <ul>{snapshot}</ul>
+        <h3>What this means for me</h3>
+        <ul>{meaning_html}</ul>
 
-    <p><b>Where to act (setups):</b></p>
-    <ul>{ideas}</ul>
+        <h3>Today's game plan</h3>
+        <ul>{gameplan_html}</ul>
 
-    <hr>
+        <h3>Sales + executive implications</h3>
+        <ul>{sales_html}</ul>
 
-    <p><b>World / Macro</b></p>
-    <ul>{bullets(data["world_df"])}</ul>
+        <h3>Deals at risk today</h3>
+        <ul>{risk_html}</ul>
 
-    <p><b>Markets</b></p>
-    <ul>{bullets(data["market_df"])}</ul>
+        <h3>Market snapshot</h3>
+        <ul>{snapshot_html}</ul>
 
-    <p><b>San Diego / Cost of living</b></p>
-    <ul>{bullets(data["sd_df"])}</ul>
+        <h3>High-priority setups</h3>
+        <ul>{ideas_html}</ul>
 
-    <p><b>Elastic</b></p>
-    <ul>{bullets(data["elastic_df"])}</ul>
+        <hr>
 
-    <p><b>Congress trade watch</b></p>
-    <ul>{bullets(data["congress_df"])}</ul>
+        <h3>World / War</h3>
+        <ul>{bullets(data["world_df"])}</ul>
 
-    <hr>
+        <h3>Markets</h3>
+        <ul>{bullets(data["market_df"])}</ul>
 
-    <p style="font-size:12px;color:#666;">
-    Quick read. No fluff. Use this to orient your day.
-    </p>
+        <h3>San Diego / California</h3>
+        <ul>{bullets(data["sd_df"])}</ul>
 
-    </body>
+        <h3>Elastic</h3>
+        <ul>{bullets(data["elastic_df"])}</ul>
+
+        <h3>Congress trade watch</h3>
+        <ul>{bullets(data["congress_df"])}</ul>
+
+        <p style="font-size: 12px; color: #666;">
+          Informational only. Not personalized investment advice.
+        </p>
+      </body>
     </html>
     """
 
     return subject, html
-    return subject, html
+
 
 def send_email():
     host = os.getenv("SMTP_HOST")
@@ -87,12 +106,16 @@ def send_email():
     to_addr = os.getenv("EMAIL_TO")
     from_addr = os.getenv("EMAIL_FROM", username)
 
-    missing = [k for k, v in {
-        "SMTP_HOST": host,
-        "SMTP_USERNAME": username,
-        "SMTP_PASSWORD": password,
-        "EMAIL_TO": to_addr,
-    }.items() if not v]
+    missing = [
+        k
+        for k, v in {
+            "SMTP_HOST": host,
+            "SMTP_USERNAME": username,
+            "SMTP_PASSWORD": password,
+            "EMAIL_TO": to_addr,
+        }.items()
+        if not v
+    ]
     if missing:
         raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
 
@@ -108,6 +131,7 @@ def send_email():
     with smtplib.SMTP_SSL(host, port) as server:
         server.login(username, password)
         server.send_message(msg)
+
 
 if __name__ == "__main__":
     send_email()
