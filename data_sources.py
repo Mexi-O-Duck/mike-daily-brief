@@ -295,13 +295,3 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
         "market_snapshot": snapshot_lines,
         "what_this_means": what_this_means,
     }
-    return {
-        "opening": "Executive morning brief: macro, markets, San Diego pressure points, Elastic, Congress trade watch, and high-priority market setups.",
-        "topline": [
-            f"US CPI: {data['us_cpi']['value']} | San Diego CPI: {data['sd_cpi']['value']}",
-            estc_line,
-        ],
-        "watchouts": watchouts[:3],
-        "top_ideas": top_ideas,
-        "market_snapshot": snapshot_lines,
-    }
