@@ -39,8 +39,18 @@ BLS_SERIES = {
 }
 
 TRACKED_TICKERS = [
-    "SPY", "QQQ", "IWM", "XLE", "XLF", "XLV", "GLD", "TLT", "ESTC",
-    "NVDA", "MSFT", "AMZN"
+    "SPY",
+    "QQQ",
+    "IWM",
+    "XLE",
+    "XLF",
+    "XLV",
+    "GLD",
+    "TLT",
+    "ESTC",
+    "NVDA",
+    "MSFT",
+    "AMZN",
 ]
 
 TICKER_LABELS = {
@@ -315,89 +325,81 @@ def executive_brief(data: Dict[str, Any]) -> Dict[str, Any]:
     if not data["sd_df"].empty:
         watchouts.append(data["sd_df"].iloc[0]["title"])
 
-   what_this_means = []
+    what_this_means = []
 
-# --- MARKET DIRECTION ---
-if not snapshot_df.empty:
-    avg_move = snapshot_df["1M %"].mean()
-
-    if avg_move > 3:
-        market_tone = "risk-on"
-    elif avg_move < -3:
-        market_tone = "risk-off"
+    if not snapshot_df.empty:
+        avg_move = snapshot_df["1M %"].mean()
+        if avg_move > 3:
+            market_tone = "risk-on"
+        elif avg_move < -3:
+            market_tone = "risk-off"
+        else:
+            market_tone = "mixed"
     else:
-        market_tone = "mixed"
-else:
-    market_tone = "unknown"
+        market_tone = "unknown"
 
-# --- SALES / EXECUTIVE ---
-if market_tone == "risk-off":
-    what_this_means.append(
-        "Executive / sales: markets are leaning risk-off → expect tighter budgets, slower approvals, and more ROI scrutiny."
-    )
-elif market_tone == "risk-on":
-    what_this_means.append(
-        "Executive / sales: markets are supportive → easier conversations around growth, innovation, and new spend."
-    )
-else:
-    what_this_means.append(
-        "Executive / sales: mixed environment → focus on deal quality, urgency, and clear business impact."
-    )
-
-# --- INVESTING ---
-if not ideas_df.empty:
-    top = ideas_df.iloc[0]
-
-    if top["1M %"] > 5:
+    if market_tone == "risk-off":
         what_this_means.append(
-            f"Investing: strong momentum showing up in {top['Ticker']} → worth tracking closely, but avoid chasing extended moves."
+            "Executive / sales: markets are leaning risk-off, so expect tighter budgets, slower approvals, and more ROI scrutiny."
+        )
+    elif market_tone == "risk-on":
+        what_this_means.append(
+            "Executive / sales: markets are supportive, which usually helps conversations around growth, innovation, and new spend."
         )
     else:
         what_this_means.append(
-            f"Investing: no dominant trend → prioritize patience over forcing trades."
+            "Executive / sales: mixed environment, so keep the focus on deal quality, urgency, and clear business impact."
         )
-else:
-    what_this_means.append(
-        "Investing: no clear setups → sit tight and wait for stronger signals."
-    )
 
-# --- ELASTIC SIGNAL ---
-if not hist.empty:
-    last = hist["Close"].iloc[-1]
-    month = hist["Close"].iloc[-22]
-
-    estc_change = pct_change(last, month)
-
-    if estc_change < -5:
-        what_this_means.append(
-            "Elastic: continued weakness → market likely questioning growth or positioning."
-        )
-    elif estc_change > 5:
-        what_this_means.append(
-            "Elastic: showing strength → sentiment improving or momentum building."
-        )
+    if not ideas_df.empty:
+        top = ideas_df.iloc[0]
+        if top["1M %"] > 5:
+            what_this_means.append(
+                f"Investing: strong momentum is showing up in {top['Ticker']}, so it is worth tracking closely, but do not chase extended moves."
+            )
+        else:
+            what_this_means.append(
+                "Investing: no dominant trend is standing out, so patience is better than forcing trades."
+            )
     else:
         what_this_means.append(
-            "Elastic: relatively stable → no strong directional signal right now."
+            "Investing: no clear setups are standing out right now, so wait for stronger signals."
         )
 
-# --- MACRO / COST PRESSURE ---
-cpi_val = data["us_cpi"].get("value", "N/A")
+    if not hist.empty:
+        last = float(hist["Close"].iloc[-1])
+        month = float(hist["Close"].iloc[-22]) if len(hist) > 22 else float(hist["Close"].iloc[0])
+        estc_change = pct_change(last, month)
 
-try:
-    cpi_val = float(cpi_val)
-    if cpi_val > 3:
+        if estc_change < -5:
+            what_this_means.append(
+                "Elastic: continued weakness suggests the market is still questioning growth or positioning."
+            )
+        elif estc_change > 5:
+            what_this_means.append(
+                "Elastic: recent strength suggests sentiment is improving or momentum is building."
+            )
+        else:
+            what_this_means.append(
+                "Elastic: relatively stable right now, with no strong directional signal."
+            )
+
+    cpi_val = data["us_cpi"].get("value", "N/A")
+    try:
+        cpi_num = float(cpi_val)
+        if cpi_num > 3:
+            what_this_means.append(
+                "Macro: inflation is still elevated, which keeps pressure on costs, spending behavior, and rate expectations."
+            )
+        else:
+            what_this_means.append(
+                "Macro: inflation looks more contained, which reduces some pressure on rates and spending."
+            )
+    except Exception:
         what_this_means.append(
-            "Macro: inflation still elevated → ongoing pressure on costs, spending behavior, and rate expectations."
+            "Macro: CPI data is unavailable today."
         )
-    else:
-        what_this_means.append(
-            "Macro: inflation looks contained → less pressure on rates and spending."
-        )
-except:
-    what_this_means.append(
-        "Macro: CPI data unavailable today."
-    )
+
     return {
         "opening": "Plain-English morning brief: what matters today, why it matters, and where to pay attention.",
         "topline": [
