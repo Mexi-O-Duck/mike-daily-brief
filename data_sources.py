@@ -79,10 +79,25 @@ def get_topic_news(topic: str) -> pd.DataFrame:
     return df.drop_duplicates(subset=["title"]).reset_index(drop=True).head(10)
 
 def bls_latest(series_id: str) -> Dict[str, Any]:
-    url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
-    response = requests.post(url, json={"seriesid": [series_id], "latest": True}, timeout=20)
-    response.raise_for_status()
-    return response.json()["Results"]["series"][0]["data"][0]
+    try:
+        url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+        response = requests.post(
+            url,
+            json={"seriesid": [series_id], "latest": True},
+            timeout=20,
+        )
+        response.raise_for_status()
+
+        data = response.json()
+
+        # Defensive checks
+        if "Results" not in data or "series" not in data["Results"]:
+            return {"value": "N/A"}
+
+        return data["Results"]["series"][0]["data"][0]
+
+    except Exception:
+        return {"value": "N/A"}
 
 def bls_last_12(series_id: str) -> pd.DataFrame:
     end_year = datetime.now().year
