@@ -14,50 +14,69 @@ def bullets(df, n=3):
 def format_html():
     data = collect_all()
     brief = executive_brief(data)
-    subject = "Mike's Executive Daily Brief"
 
-    topline_html = "".join([f"<li>{line}</li>" for line in brief["topline"]])
-    watchouts_html = "".join([f"<li>{item}</li>" for item in brief["watchouts"]]) or "<li>No watchouts</li>"
-    ideas_html = "".join([f"<li>{item}</li>" for item in brief["top_ideas"]]) or "<li>No setups today</li>"
-    snapshot_html = "".join([f"<li>{item}</li>" for item in brief["market_snapshot"]]) or "<li>No snapshot available</li>"
+    subject = "Mike's Daily Executive Brief"
+
+    def bullets(df, n=3):
+        if df.empty:
+            return "<li>No major updates</li>"
+        return "".join([
+            f"<li><a href='{r['link']}'>{r['title']}</a></li>"
+            for _, r in df.head(n).iterrows()
+        ])
+
+    # Build sections
+    topline = "".join([f"<li>{line}</li>" for line in brief["topline"]])
+    watchouts = "".join([f"<li>{w}</li>" for w in brief["watchouts"]]) or "<li>No major risks</li>"
+    ideas = "".join([f"<li>{i}</li>" for i in brief["top_ideas"]]) or "<li>No strong setups</li>"
+    snapshot = "".join([f"<li>{m}</li>" for m in brief["market_snapshot"]]) or "<li>No data</li>"
 
     html = f"""
     <html>
-      <body style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
-        <h2>Mike's Executive Daily Brief</h2>
-        <p>{brief['opening']}</p>
+    <body style="font-family: Arial; line-height: 1.5; color: #111;">
 
-        <h3>Top line</h3>
-        <ul>{topline_html}</ul>
+    <h2>Mike’s Daily Brief</h2>
 
-        <h3>Watchouts</h3>
-        <ul>{watchouts_html}</ul>
+    <p><b>What matters today:</b></p>
+    <ul>{topline}</ul>
 
-        <h3>Market snapshot</h3>
-        <ul>{snapshot_html}</ul>
+    <p><b>What to watch:</b></p>
+    <ul>{watchouts}</ul>
 
-        <h3>High-priority setups</h3>
-        <ul>{ideas_html}</ul>
+    <p><b>Market snapshot:</b></p>
+    <ul>{snapshot}</ul>
 
-        <h3>World / War</h3>
-        <ul>{bullets(data['world_df'])}</ul>
+    <p><b>Where to act (setups):</b></p>
+    <ul>{ideas}</ul>
 
-        <h3>Markets</h3>
-        <ul>{bullets(data['market_df'])}</ul>
+    <hr>
 
-        <h3>San Diego / California</h3>
-        <ul>{bullets(data['sd_df'])}</ul>
+    <p><b>World / Macro</b></p>
+    <ul>{bullets(data["world_df"])}</ul>
 
-        <h3>Elastic</h3>
-        <ul>{bullets(data['elastic_df'])}</ul>
+    <p><b>Markets</b></p>
+    <ul>{bullets(data["market_df"])}</ul>
 
-        <h3>Congress trade watch</h3>
-        <ul>{bullets(data['congress_df'])}</ul>
+    <p><b>San Diego / Cost of living</b></p>
+    <ul>{bullets(data["sd_df"])}</ul>
 
-        <p style="font-size: 12px; color: #666;">Informational only. Not personalized investment advice.</p>
-      </body>
+    <p><b>Elastic</b></p>
+    <ul>{bullets(data["elastic_df"])}</ul>
+
+    <p><b>Congress trade watch</b></p>
+    <ul>{bullets(data["congress_df"])}</ul>
+
+    <hr>
+
+    <p style="font-size:12px;color:#666;">
+    Quick read. No fluff. Use this to orient your day.
+    </p>
+
+    </body>
     </html>
     """
+
+    return subject, html
     return subject, html
 
 def send_email():
