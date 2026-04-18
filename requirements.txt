@@ -1,0 +1,7 @@
+streamlit
+pandas
+requests
+yfinance
+beautifulsoup4
+feedparser
+lxml
