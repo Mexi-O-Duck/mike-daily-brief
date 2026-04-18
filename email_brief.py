@@ -35,10 +35,11 @@ def format_html():
     watchouts_html = html_list(brief.get("watchouts", []))
     meaning_html = html_list(brief.get("what_this_means", []))
     gameplan_html = html_list(brief.get("game_plan", []))
-    ideas_html = html_list(brief.get("top_ideas", []))
-    snapshot_html = html_list(brief.get("market_snapshot", []))
+    priority_html = html_list(brief.get("priority_actions", []))
     sales_html = html_list(brief.get("sales_exec_implications", []))
     risk_html = html_list(brief.get("deals_at_risk", []))
+    snapshot_html = html_list(brief.get("market_snapshot", []))
+    ideas_html = html_list(brief.get("top_ideas", []))
 
     html = f"""
     <html>
@@ -58,6 +59,9 @@ def format_html():
 
         <h3>Today's game plan</h3>
         <ul>{gameplan_html}</ul>
+
+        <h3>Your priority actions today</h3>
+        <ul>{priority_html}</ul>
 
         <h3>Sales + executive implications</h3>
         <ul>{sales_html}</ul>
